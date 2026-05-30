@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashlin Naidoo - GeoInformatics & Software Developer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Fira+Code:wght@300;400;500&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ===================================================
+       RESET & BASE
+    =================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:             #07091a;
+      --bg-card:        #0d1226;
+      --bg-hover:       #121935;
+      --text:           #ddd8c8;
+      --text-muted:     #6b7f9a;
+      --text-light:     #a0afca;
+      --teal:           #18dfc0;
+      --teal-dim:       rgba(24, 223, 192, 0.10);
+      --amber:          #f0b84a;
+      --amber-dim:      rgba(240, 184, 74, 0.10);
+      --border:         rgba(24, 223, 192, 0.20);
+      --border-subtle:  rgba(255, 255, 255, 0.06);
+      --font-display:   'Cormorant Garamond', Georgia, serif;
+      --font-code:      'Fira Code', 'Courier New', monospace;
+      --font-body:      'Source Sans 3', system-ui, sans-serif;
+      --max-w:          1140px;
+      --radius:         8px;
+    }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Topographic canvas background */
+    #topo-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.55;
+    }
+
+    /* Coordinate grid overlay on top of canvas */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(24, 223, 192, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 223, 192, 0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: var(--teal); text-decoration: none; transition: opacity 0.2s; }
+    a:hover { opacity: 0.75; }
+
+    /* ===================================================
+       LAYOUT
+    =================================================== */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    section {
+      padding: 5.5rem 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    /* ===================================================
+       TYPOGRAPHY HELPERS
+    =================================================== */
+    .section-label {
+      display: block;
+      font-family: var(--font-code);
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--teal);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 0.65rem;
+    }
+
+    .section-heading {
+      margin-bottom: 3rem;
+    }
+
+    .section-heading h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.15;
+    }
+
+    .section-heading h2 em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    /* ===================================================
+       NAVIGATION
+    =================================================== */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      padding: 1.1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(7, 9, 26, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-logo {
+      font-family: var(--font-code);
+      font-size: 0.82rem;
+      color: var(--teal);
+      letter-spacing: 0.10em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--font-code);
+      font-size: 0.78rem;
+      color: var(--text-light);
+      letter-spacing: 0.06em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--teal); opacity: 1; }
+
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .nav-toggle span {
+      display: block;
+      width: 22px; height: 2px;
+      background: var(--text-light);
+      transition: all 0.3s;
+      border-radius: 2px;
+    }
+
+    @media (max-width: 640px) {
+      .nav-toggle { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        flex-direction: column;
+        gap: 0;
+        background: rgba(7, 9, 26, 0.98);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 0.5rem 2rem 1.5rem;
+      }
+      .nav-links.open { display: flex; }
+      .nav-links li { padding: 0.65rem 0; border-bottom: 1px solid var(--border-subtle); }
+      .nav-links li:last-child { border-bottom: none; }
+    }
+
+    /* ===================================================
+       HERO
+    =================================================== */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 0 4rem;
+      border-top: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Background glow */
+    #hero::after {
+      content: '';
+      position: absolute;
+      top: 20%; left: -5%;
+      width: 55%; height: 65%;
+      background: radial-gradient(ellipse, rgba(24, 223, 192, 0.065) 0%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      width: 100%;
+    }
+
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      font-family: var(--font-code);
+      font-size: 0.78rem;
+      color: var(--teal);
+      letter-spacing: 0.14em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 28px; height: 1px;
+      background: var(--teal);
+      flex-shrink: 0;
+    }
+
+    h1.hero-name {
+      font-family: var(--font-display);
+      font-size: clamp(3.8rem, 9vw, 7.5rem);
+      font-weight: 300;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      line-height: 0.97;
+      margin-bottom: 1rem;
+    }
+
+    h1.hero-name em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-code);
+      font-size: clamp(0.78rem, 1.5vw, 0.92rem);
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 1.75rem;
+    }
+
+    .hero-subtitle .sep { color: var(--teal); margin: 0 0.55rem; }
+
+    .hero-description {
+      max-width: 540px;
+      color: var(--text-light);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.72rem 1.6rem;
+      border-radius: var(--radius);
+      font-family: var(--font-code);
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.07em;
+      transition: all 0.22s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #07091a;
+    }
+    .btn-primary:hover { background: #22eecf; opacity: 1; color: #07091a; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--teal);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--teal-dim); opacity: 1; }
+
+    .hero-coords {
+      position: absolute;
+      bottom: 2.5rem; right: 2rem;
+      font-family: var(--font-code);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-align: right;
+      line-height: 1.9;
+      opacity: 0.45;
+      user-select: none;
+    }
+
+    /* ===================================================
+       ABOUT
+    =================================================== */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    @media (max-width: 800px) {
+      .about-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    }
+
+    .about-bio p {
+      color: var(--text-light);
+      font-size: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .about-bio p:last-child { margin-bottom: 0; }
+
+    .skills-panel h3 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+    }
+
+    .skill-group { margin-bottom: 1.5rem; }
+    .skill-group:last-child { margin-bottom: 0; }
+
+    .skill-group-label {
+      font-family: var(--font-code);
+      font-size: 0.67rem;
+      color: var(--teal);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 0.55rem;
+    }
+
+    .skill-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .skill-tag {
+      background: var(--teal-dim);
+      border: 1px solid var(--border);
+      color: var(--text-light);
+      font-family: var(--font-code);
+      font-size: 0.7rem;
+      padding: 0.28rem 0.65rem;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ===================================================
+       PROJECTS
+    =================================================== */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.2rem;
+    }
+
+    .project-card.span2 { grid-column: span 2; }
+    .project-card.span3 { grid-column: 1 / -1; }
+
+    @media (max-width: 900px) {
+      .projects-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .projects-grid { grid-template-columns: 1fr; }
+      .project-card.span2 { grid-column: span 1; }
+      .project-card.span3 { grid-column: span 1; }
+    }
+
+    .project-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.65rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: border-color 0.25s, background 0.25s, transform 0.25s;
+    }
+
+    .project-card:hover {
+      border-color: var(--border);
+      background: var(--bg-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Accent line */
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--teal);
+      border-radius: var(--radius) 0 0 var(--radius);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .project-card:hover::before { opacity: 1; }
+    .project-card.featured::before { opacity: 0.35; }
+
+    .project-type {
+      font-family: var(--font-code);
+      font-size: 0.66rem;
+      color: var(--teal);
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      margin-bottom: 0.7rem;
+    }
+
+    .project-type.amber { color: var(--amber); }
+
+    .project-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.7rem;
+    }
+
+    .project-card p {
+      color: var(--text-muted);
+      font-size: 0.91rem;
+      line-height: 1.72;
+      flex: 1;
+      margin-bottom: 1.2rem;
+    }
+
+    .project-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      flex: 1;
+      color: var(--text-muted);
+      font-size: 0.91rem;
+      line-height: 1.72;
+    }
+
+    .project-card li {
+      padding-left: 1.1rem;
+      position: relative;
+    }
+
+    .project-card li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--teal);
+      font-family: var(--font-code);
+      font-size: 0.95rem;
+    }
+
+    .project-card.featured li::before {
+      color: var(--amber);
+    }
+
+    .project-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      flex: 1;
+    }
+
+    .project-card li {
+      padding-left: 1.1rem;
+      position: relative;
+      font-size: 0.91rem;
+      color: var(--text-muted);
+      line-height: 1.72;
+    }
+
+    .project-card li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--teal);
+      font-family: var(--font-code);
+      font-size: 0.95rem;
+    }
+
+    .tech-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .tech-tag {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-family: var(--font-code);
+      font-size: 0.66rem;
+      padding: 0.2rem 0.52rem;
+      border-radius: 3px;
+    }
+
+    .project-links {
+      display: flex;
+      gap: 1.2rem;
+      margin-top: auto;
+    }
+
+    .project-link {
+      font-family: var(--font-code);
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    .project-link:hover { color: var(--teal); opacity: 1; }
+
+    /* ===================================================
+       GIT PROGRESSION LAYOUT
+    =================================================== */
+    .git-progression {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin: 1.2rem 0 0.5rem;
+      position: relative;
+    }
+
+    @media (max-width: 900px) {
+      .git-progression { grid-template-columns: 1fr 1fr; }
+      .git-progression::before { display: none; }
+    }
+    @media (max-width: 560px) {
+      .git-progression { grid-template-columns: 1fr; }
+    }
+
+    .git-stage {
+      position: relative;
+      padding: 1rem 0.9rem 0.9rem;
+      background: rgba(24, 223, 192, 0.04);
+      border: 1px solid rgba(24, 223, 192, 0.12);
+      border-radius: 6px;
+      z-index: 1;
+    }
+
+    .git-stage-label {
+      font-family: var(--font-code);
+      font-size: 0.63rem;
+      color: var(--teal);
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+
+    .git-stage-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.55rem;
+      line-height: 1.25;
+    }
+
+    .git-stage p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    /* ===================================================
+       EXPERIENCE
+    =================================================== */
+    .exp-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+    }
+
+    @media (max-width: 800px) {
+      .exp-cols { grid-template-columns: 1fr; gap: 3rem; }
+    }
+
+    .exp-col > h3 {
+      font-family: var(--font-display);
+      font-size: 1.45rem;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 2rem;
+    }
+
+    .timeline { position: relative; padding-left: 1.5rem; }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 1px;
+      background: var(--border-subtle);
+    }
+
+    .t-item {
+      position: relative;
+      padding-bottom: 2.25rem;
+    }
+
+    .t-item:last-child { padding-bottom: 0; }
+
+    .t-item::before {
+      content: '';
+      position: absolute;
+      left: calc(-1.5rem - 3px);
+      top: 0.5rem;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .t-date {
+      font-family: var(--font-code);
+      font-size: 0.67rem;
+      color: var(--teal);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.3rem;
+    }
+
+    .t-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 0.15rem;
+    }
+
+    .t-org {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      font-style: italic;
+    }
+
+    .t-desc {
+      font-size: 0.87rem;
+      color: var(--text-muted);
+      line-height: 1.68;
+    }
+
+    .t-desc ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .t-desc li {
+      padding-left: 1.1rem;
+      position: relative;
+      line-height: 1.7;
+    }
+
+    .t-desc li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--teal);
+      font-family: var(--font-code);
+      font-size: 0.95rem;
+    }
+
+
+
+    /* ===================================================
+       REFLECTION
+    =================================================== */
+    .reflection-intro {
+      max-width: 640px;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      font-size: 0.95rem;
+      line-height: 1.75;
+    }
+
+    .reflection-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+    }
+
+    @media (max-width: 700px) {
+      .reflection-grid { grid-template-columns: 1fr; }
+    }
+
+    .r-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.65rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .r-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 80px; height: 80px;
+      background: var(--amber-dim);
+      border-radius: 50% 0 var(--radius) 0;
+      pointer-events: none;
+    }
+
+    .r-prompt {
+      font-family: var(--font-code);
+      font-size: 0.67rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.65rem;
+    }
+
+    .r-card h4 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.7rem;
+    }
+
+    .r-card p {
+      color: var(--text-muted);
+      font-size: 0.91rem;
+      line-height: 1.75;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===================================================
+       FOOTER
+    =================================================== */
+    footer {
+      padding: 3rem 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .footer-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-name {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 300;
+      color: var(--text);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-link {
+      font-family: var(--font-code);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover { color: var(--teal); opacity: 1; }
+
+    .footer-copy {
+      font-family: var(--font-code);
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      opacity: 0.4;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* ===================================================
+       ANIMATIONS
+    =================================================== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-eyebrow  { animation: fadeUp 0.65s ease 0.05s both; }
+    h1.hero-name   { animation: fadeUp 0.65s ease 0.15s both; }
+    .hero-subtitle { animation: fadeUp 0.65s ease 0.25s both; }
+    .hero-description { animation: fadeUp 0.65s ease 0.32s both; }
+    .hero-ctas     { animation: fadeUp 0.65s ease 0.40s both; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+<canvas id="topo-canvas" aria-hidden="true"></canvas>
+
+<!-- ============================
+     NAVIGATION
+============================= -->
+<nav>
+  <span class="nav-logo">DN — Portfolio</span>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#reflection">Reflection</a></li>
+    <li><a href="mailto:dashlinnaidoo13@gmail.com">Contact</a></li>
+  </ul>
+  <div class="nav-toggle" id="navToggle" onclick="toggleNav()" aria-label="Toggle navigation">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+
+<!-- ============================
+     HERO
+============================= -->
+<section id="hero" style="border-top:none;">
+  <div class="hero-inner container">
+
+    <div class="hero-eyebrow">
+      Software Developer &amp; GeoInformatics
+    </div>
+
+    <h1 class="hero-name">
+      Dashlin<br><em>Naidoo</em>
+    </h1>
+
+    <p class="hero-subtitle">
+      BSc GeoInformatics: Computer Science
+      <span class="sep">·</span>
+      BScHons GeoInformatics 2026
+      <span class="sep">·</span>
+      Remote Sensing &amp; Earth Observation
+      <span class="sep">·</span>
+      Stellenbosch University
+    </p>
+
+    <p class="hero-description">
+      I build practical software at the intersection of spatial data science and full-stack development -
+      from Android applications designed for low-connectivity environments to machine learning
+      pipelines predicting geospatial public health risks.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="#projects" class="btn btn-primary">View Projects</a>
+      <a href="https://www.linkedin.com/in/dashlin-naidoo-3a3003265" target="_blank" rel="noopener" class="btn btn-ghost">↗ LinkedIn</a>
+      <a href="Dashlin_Naidoo_CV.pdf" download class="btn btn-ghost">↓ Download CV</a>
+    </div>
+
+  </div>
+
+  <div class="hero-coords" aria-hidden="true">
+    33.9321° S, 18.8602° E<br>
+    Stellenbosch, South Africa
+  </div>
+</section>
+
+
+<!-- ============================
+     ABOUT
+============================= -->
+<section id="about">
+  <div class="container">
+
+    <div class="section-heading reveal">
+      <span class="section-label">// 01 — about</span>
+      <h2>Who <em>I Am</em></h2>
+    </div>
+
+    <div class="about-grid">
+
+      <div class="about-bio reveal">
+        <p>
+          I'm an early-career software developer and BSc GeoInformatics: Computer Science graduate
+          from Stellenbosch University, currently completing an Honours degree. My work sits at
+          the intersection of software development and spatial data science, building mobile
+          applications for field teams, developing intelligent systems and applying machine learning
+          to geospatial health datasets.
+        </p>
+        <p>
+          My Honours thesis applies Python-based machine learning and geospatial analysis to predict
+          tuberculosis notification risk at clinic and ward level across South Africa - research that
+          combines programming rigour with GIS principles in a real-world public health context.
+        </p>
+        <p>
+          I have hands-on experience in remote sensing and Earth Observation, including satellite-derived
+          vegetation indices (NDVI and related EO metrics), working with ArcGIS, QGIS, eCognition Developer,
+          and Google Earth Engine for spatial analysis. A co-authored paper using EO to assess the effects
+          of warfare on vegetation in Gaza was presented at the International Conference of Military GeoScience 2024.
+        </p>
+        <p>
+          Alongside my studies, I serve as a Lecture Assistant at Stellenbosch University across
+          multiple GIT modules, supporting first- to third-year students. I also tutor computer
+          science students through Magane CS Tutors and contribute back-end development work at
+          POS IT Excellence.
+        </p>
+      </div>
+
+      <div class="skills-panel reveal">
+        <h3>Technical Skills</h3>
+
+        <div class="skill-group">
+          <div class="skill-group-label">Languages</div>
+          <div class="skill-tags">
+            <span class="skill-tag">Python</span>
+            <span class="skill-tag">Java</span>
+            <span class="skill-tag">C</span>
+            <span class="skill-tag">JavaScript</span>
+            <span class="skill-tag">HTML / CSS</span>
+            <span class="skill-tag">Assembly</span>
+          </div>
+        </div>
+
+        <div class="skill-group">
+          <div class="skill-group-label">Frameworks & Platforms</div>
+          <div class="skill-tags">
+            <span class="skill-tag">React</span>
+            <span class="skill-tag">.NET</span>
+            <span class="skill-tag">.NET MAUI</span>
+            <span class="skill-tag">Firebase Auth</span>
+            <span class="skill-tag">npm</span>
+          </div>
+        </div>
+
+        <div class="skill-group">
+          <div class="skill-group-label">GIS & Remote Sensing Tools</div>
+          <div class="skill-tags">
+            <span class="skill-tag">ArcGIS</span>
+            <span class="skill-tag">QGIS</span>
+            <span class="skill-tag">Google Earth Engine</span>
+            <span class="skill-tag">eCognition Developer</span>
+            <span class="skill-tag">SQL</span>
+          </div>
+        </div>
+
+        <div class="skill-group">
+          <div class="skill-group-label">Data & GIS</div>
+          <div class="skill-tags">
+            <span class="skill-tag">Machine Learning</span>
+            <span class="skill-tag">Geospatial Analysis</span>
+            <span class="skill-tag">Regression</span>
+            <span class="skill-tag">Classification</span>
+            <span class="skill-tag">Clustering</span>
+            <span class="skill-tag">Satellite Indices</span>
+          </div>
+        </div>
+
+        <div class="skill-group">
+          <div class="skill-group-label">Concepts & Tools</div>
+          <div class="skill-tags">
+            <span class="skill-tag">OOP</span>
+            <span class="skill-tag">Data Structures</span>
+            <span class="skill-tag">Algorithms</span>
+            <span class="skill-tag">Compiler Design</span>
+            <span class="skill-tag">Authentication</span>
+            <span class="skill-tag">State Management</span>
+            <span class="skill-tag">Figma / UI-UX</span>
+            <span class="skill-tag">Git</span>
+            <span class="skill-tag">Earth Observation</span>
+            <span class="skill-tag">Mapping</span>
+            <span class="skill-tag">Spatial Analysis</span>
+            <span class="skill-tag">Remote Sensing</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================
+     PROJECTS
+============================= -->
+<section id="projects">
+  <div class="container">
+
+    <div class="section-heading reveal">
+      <span class="section-label">// 02 — selected work</span>
+      <h2>Projects &amp; <em>Achievements</em></h2>
+    </div>
+
+    <div class="projects-grid">
+
+      <!-- FEATURED: TB Thesis -->
+       <!-- GIT Spatial Analysis Progression -->
+      <div class="project-card span3 reveal">
+        <div class="project-type">GIT Coursework · Spatial Analysis Progression · 2023 – 2026</div>
+        <h3>GIS Practical Progression: First Year to Honours</h3>
+        <ul>
+          <li>Built a coherent 4-year skill progression from foundational mapping to research-level geospatial data science — spanning 5 modules from GIT 124 to Honours GIT 742 — by developing spatial analysis, remote sensing and machine learning capabilities at each academic stage.</li>
+        </ul>
+
+        <div class="git-progression">
+          <div class="git-stage">
+            <div class="git-stage-label">GIT 124 · Year 1</div>
+            <div class="git-stage-title">Foundations of GIS</div>
+            <p>Introduction to coordinate systems, map projections and spatial data models. Practical
+            work in ArcGIS covering vector and raster data capture, basic spatial queries and
+            cartographic output, building the conceptual foundation for all subsequent GIS work.</p>
+          </div>
+          <div class="git-stage">
+            <div class="git-stage-label">GIT 214 / 241 · Year 2</div>
+            <div class="git-stage-title">Spatial Analysis &amp; Remote Sensing</div>
+            <p>Vector and raster analysis operations, proximity, overlay, network analysis and terrain
+            modelling. Introduction to remote sensing principles: spectral signatures, image classification,
+            and land-cover mapping using satellite imagery. First exposure to NDVI and vegetation indices.</p>
+          </div>
+          <div class="git-stage">
+            <div class="git-stage-label">GIT 342 · Year 3</div>
+            <div class="git-stage-title">Advanced GIS &amp; Object-Based Analysis</div>
+            <p>Advanced spatial analysis with Python and ArcGIS. Object-based image analysis using
+            eCognition Developer: segmentation, classification and feature extraction from high-resolution
+            imagery.</p>
+          </div>
+          <div class="git-stage">
+            <div class="git-stage-label">GIT 742 · Honours · In Progress</div>
+            <div class="git-stage-title">Research-Level Geospatial Data Science</div>
+            <p>Machine learning applied to spatial health data: regression, classification, and clustering
+            to predict TB notification risk at clinic and ward level. Integrating spatio-temporal,
+            demographic, and HIV determinant datasets into a reproducible Python-based analysis pipeline
+            for a real-world public health application.</p>
+          </div>
+        </div>
+
+        <div class="tech-tags" style="margin-top:1.2rem;">
+          <span class="tech-tag">ArcGIS</span>
+          <span class="tech-tag">QGIS</span>
+          <span class="tech-tag">eCognition</span>
+          <span class="tech-tag">Google Earth Engine</span>
+          <span class="tech-tag">Python (GIS)</span>
+          <span class="tech-tag">Remote Sensing</span>
+          <span class="tech-tag">Spatial Analysis</span>
+          <span class="tech-tag">Land-Cover Classification</span>
+          <span class="tech-tag">Terrain Modelling</span>
+          <span class="tech-tag">Temporal Change Detection</span>
+        </div>
+      </div>
+
+      <!-- Routing App -->
+      <div class="project-card reveal">
+        <div class="project-type">Mobile Application</div>
+        <h3>Routing App for Gendac</h3>
+        <ul>
+          <li>Delivered a production-ready Android routing application for low-connectivity field environments, including secure Firebase Authentication, token-based sessions and offline-capable local caching, by building the full application from scratch in .NET MAUI.</li>
+          <li>Designed the authentication and caching architecture around real field conditions, enabling the app to function reliably without a live network connection.</li>
+        </ul>
+        <div class="tech-tags">
+          <span class="tech-tag">.NET MAUI</span>
+          <span class="tech-tag">.NET</span>
+          <span class="tech-tag">Firebase Auth</span>
+          <span class="tech-tag">Local Caching</span>
+          <span class="tech-tag">Android</span>
+        </div>
+      </div>
+
+      <!-- Othello Simulator -->
+      <div class="project-card reveal">
+        <div class="project-type">Game AI · Systems Programming</div>
+        <h3>Othello AI Simulator</h3>
+        <ul>
+          <li>Engineered an intelligent Othello game engine with strong strategic play, significantly cutting computational overhead, by implementing recursive decision-tree traversal, heuristic board-state evaluation and alpha-beta pruning in C.</li>
+          <li>Demonstrated applied mastery of algorithms and low-level systems programming by building the entire game logic, search tree and evaluation function from scratch.</li>
+        </ul>
+        <div class="tech-tags">
+          <span class="tech-tag">C</span>
+          <span class="tech-tag">Alpha-Beta Pruning</span>
+          <span class="tech-tag">Game AI</span>
+          <span class="tech-tag">Algorithms</span>
+        </div>
+      </div>
+
+
+            <!-- GIT Hackathon -->
+      <div class="project-card reveal">
+        <div class="project-type amber">Competitive · Hackathon</div>
+        <h3>GIT Hackathon</h3>
+        <ul>
+          <li>Placed in the top 70 teams globally in the NASA SpaceApps GIT Hackathon by rapidly prototyping a geospatial solution using SAR data under competitive time pressure.</li>
+          <li>Delivered a working geospatial prototype within the hackathon window by applying GeoInformatics and software development skills collaboratively under tight constraints.</li>
+        </ul>
+        <div class="tech-tags">
+          <span class="tech-tag">GeoInformatics</span>
+          <span class="tech-tag">Rapid Prototyping</span>
+          <span class="tech-tag">Teamwork</span>
+          <span class="tech-tag">SAR data</span>
+        </div>
+      </div>  
+
+      <!-- Gaza EO Paper + ICMG Conference (merged) -->
+      <div class="project-card featured span2 reveal">
+        <div class="project-type amber">Co-authored Research · Earth Observation · ICMG 2024</div>
+        <h3>Warfare Effects on Vegetation in Gaza - Published &amp; Presented</h3>
+        <ul>
+          <li>Co-authored a peer-reviewed paper quantifying conflict-driven vegetation and ecosystem loss in Gaza, tracking land-cover change across spatio-temporal satellite datasets, by applying NDVI and Earth Observation metrics to demonstrate environmental impact at scale.</li>
+          <li>Presented original geospatial findings at the <strong style="color:var(--amber)">International Conference of Military GeoScience 2024</strong> by communicating the study's methodology and results to an expert international audience.</li>
+        </ul>
+        <div class="tech-tags">
+          <span class="tech-tag">Remote Sensing</span>
+          <span class="tech-tag">Earth Observation</span>
+          <span class="tech-tag">NDVI</span>
+          <span class="tech-tag">Vegetation Indices</span>
+          <span class="tech-tag">Satellite Imagery</span>
+          <span class="tech-tag">Temporal Analysis</span>
+          <span class="tech-tag">Conflict GeoScience</span>
+          <span class="tech-tag">Academic Publication</span>
+        </div>
+        <div class="project-links">
+          <span class="project-link">Co-authored · ICMG 2024 · International Conference</span>
+        </div>
+      </div>
+  </div>
+</section>
+
+
+<!-- ============================
+     EXPERIENCE
+============================= -->
+<section id="experience">
+  <div class="container">
+
+    <div class="section-heading reveal">
+      <span class="section-label">// 03 — background</span>
+      <h2>Experience &amp; <em>Education</em></h2>
+    </div>
+
+    <div class="exp-cols">
+
+      <div class="exp-col reveal">
+        <h3>Work Experience</h3>
+        <div class="timeline">
+
+          <div class="t-item">
+            <div class="t-date">Jul 2023 — Present</div>
+            <div class="t-title">Software Developer (Internship)</div>
+            <div class="t-org">POS IT Excellence</div>
+            <div class="t-desc"><ul>
+              <li>Delivered back-end coding tasks to real project deadlines by applying academic programming knowledge to live development requirements at a professional standard.</li>
+              <li>Developed practical software capability by completing assignments under workplace accountability standards and adapting to real project constraints through close team collaboration.</li>
+            </ul></div>
+          </div>
+
+          <div class="t-item">
+            <div class="t-date">Jan 2024 — Present</div>
+            <div class="t-title">Lecture Assistant</div>
+            <div class="t-org">Stellenbosch University</div>
+            <div class="t-desc"><ul>
+              <li>Supported students across first, second and third year in 3 GeoInformatics modules (GIT 124, 214, 241) by explaining technical concepts and guiding practical coursework at each academic level.</li>
+              <li>Balanced tutoring responsibilities across 3 modules alongside my own workload by preparing for practical support materials and communicating technical ideas clearly.</li>
+            </ul></div>
+          </div>
+
+          <div class="t-item">
+            <div class="t-date">Present</div>
+            <div class="t-title">Computer Science Tutor</div>
+            <div class="t-org">Magane CS Tutors</div>
+            <div class="t-desc"><ul>
+              <li>Strengthened Python and Java programming skills in students, evidenced by their improved ability to debug independently and complete exercises, by explaining core syntax and guiding hands-on coding sessions.</li>
+              <li>Built learner confidence in OOP and data structures by breaking complex topics into step-by-step examples adapted to each student's level.</li>
+            </ul></div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="exp-col reveal">
+        <h3>Education</h3>
+        <div class="timeline">
+
+          <div class="t-item">
+            <div class="t-date">2026</div>
+            <div class="t-title">BScHons — GeoInformatics</div>
+            <div class="t-org">Stellenbosch University</div>
+            <div class="t-desc">Thesis: Predicting Clinic/Ward-Level Tuberculosis Notification Risk Using Machine Learning and Geospatial Analysis. Coursework in regression, classification, clustering and spatial data science.</div>
+          </div>
+
+          <div class="t-item">
+            <div class="t-date">2023 — 2025</div>
+            <div class="t-title">BSc — GeoInformatics: Computer Science</div>
+            <div class="t-org">Stellenbosch University</div>
+            <div class="t-desc">Coursework spanning Geographic Information Technology and Computer Science — Java, C, Assembly, data structures, algorithms, UI/UX design, and geospatial data science. Presented at ICMG 2024.</div>
+          </div>
+
+          <div class="t-item">
+            <div class="t-date">2018 — 2022</div>
+            <div class="t-title">NSC</div>
+            <div class="t-org">Maritzburg College</div>
+            <div class="t-desc">Graduated with a Bachelor's pass. Served as a House Leader, taking responsibility
+              for the wellbeing, conduct and morale of fellow students within the house structure.
+              Captained sports teams, developing leadership and team management skills in a
+              competitive environment. Participated in Speaker Circle, building the public speaking
+              and communication foundations that have since supported academic presentations and
+              professional engagement.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================
+     REFLECTION
+============================= -->
+<section id="reflection">
+  <div class="container">
+
+    <div class="section-heading reveal">
+      <span class="section-label">// 04 — reflection</span>
+      <h2>Academic <em>Development</em></h2>
+    </div>
+
+    <p class="reflection-intro reveal">
+      A portfolio is not just a record of completed work — it is evidence of growth. The following
+      reflects honestly on where I began, what I have developed, and where I am still growing.
+    </p>
+
+    <div class="reflection-grid">
+
+      <div class="r-card reveal">
+        <div class="r-prompt">Before this work, I could…</div>
+        <h4>Where I Started</h4>
+        <p>
+          When I began my studies, I could write basic Java and Python programs and had a
+          surface-level understanding of GIS as a mapping tool. My projects were small and
+          self-contained. This became tangible in my first GIT practicals, where I could produce
+          a map but had no framework for asking what the map was actually for, or whether the
+          data behind it was appropriate. I had not yet built software that integrated multiple
+          technologies, handled real user constraints, or required thinking about field conditions,
+          network connectivity, or spatial data at scale — the gap between academic exercises and
+          real problems was something I could not yet see.
+        </p>
+      </div>
+
+      <div class="r-card reveal">
+        <div class="r-prompt">Now I can…</div>
+        <h4>Where I Am Now</h4>
+        <p>
+          I can build full-stack and mobile applications, design authenticated systems for
+          low-connectivity environments, implement intelligent game-playing algorithms, and apply
+          machine learning to geospatial datasets. More significantly, I have come to understand
+          that technical skill is only meaningful in context — the most important shift has been
+          learning to ask who uses the system, under what conditions, and what the data actually
+          represents. That reorientation, from building things that work to building things that
+          work for someone, defines how I approach problems now. I can also communicate technical
+          GIS work to a professional academic audience, which has sharpened my ability to justify
+          methodological choices rather than simply execute them.
+        </p>
+      </div>
+
+      <div class="r-card reveal">
+        <div class="r-prompt">This is shown in…</div>
+        <h4>The Evidence</h4>
+        <p>
+          The Gendac routing application required me to design for field conditions I had not
+          previously encountered — secure authentication, session management, and offline caching
+          for users with intermittent connectivity. What it revealed was that the hardest design
+          decisions were not technical but contextual: understanding the user's environment was
+          the actual problem. My Honours thesis extends this further: applying spatial ML to
+          predict TB notification risk taught me that model output is only as defensible as the
+          spatial and epidemiological reasoning behind it — programming skill alone is insufficient.
+          Presenting at ICMG 2024 was the clearest evidence of professional growth: communicating
+          original geospatial findings to an expert international audience forced precision I had
+          not previously needed, and demonstrated that I could situate my own work within a
+          broader disciplinary conversation.
+        </p>
+      </div>
+
+      <div class="r-card reveal">
+        <div class="r-prompt">I still need to improve…</div>
+        <h4>What's Next</h4>
+        <p>
+          My geospatial analysis pipeline is still developing, and two areas are clear priorities.
+          First, I need to work more rigorously with uncertainty quantification in spatial models —
+          specifically, moving beyond reporting accuracy metrics to critically evaluating where and
+          why a model breaks down spatially. I will address this directly through my thesis, by
+          mapping residuals geographically and interrogating their spatial structure rather than
+          treating them as aggregate statistics. Second, I want to build fluency in production-level
+          data engineering for large spatial datasets — working through real pipeline failures, not
+          just controlled academic examples. I will know I have made meaningful progress when I can
+          defend a model's limitations to a domain expert, not just describe its performance.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================
+     FOOTER
+============================= -->
+<footer>
+  <div class="footer-inner">
+    <span class="footer-name">Dashlin Naidoo</span>
+
+    <div class="footer-links">
+      <a href="https://www.linkedin.com/in/dashlin-naidoo-3a3003265" target="_blank" rel="noopener" class="footer-link">↗ LinkedIn</a>
+      <a href="mailto:dashlinnaidoo13@gmail.com" class="footer-link">✉ Email</a>
+      <a href="Dashlin_Naidoo_CV.pdf" download class="footer-link">↓ Download CV</a>
+    </div>
+
+    <p class="footer-copy">© 2026 Dashlin Naidoo · GIT 713 Personal Portfolio · Stellenbosch University</p>
+  </div>
+</footer>
+
+
+<!-- ============================
+     JAVASCRIPT
+============================= -->
+<script>
+  /* ======================================================
+     TOPOGRAPHIC CONTOUR BACKGROUND
+     Animated topo-map style contours — genuine GIS aesthetic
+  ====================================================== */
+  (function() {
+    const canvas = document.getElementById('topo-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Colour palette — teal on deep navy
+    const LINE_COLOR_PRIMARY   = 'rgba(24, 223, 192, 0.18)';
+    const LINE_COLOR_INDEX     = 'rgba(24, 223, 192, 0.38)'; // every 5th contour brighter
+    const SPOT_COLOR           = 'rgba(24, 223, 192, 0.55)';
+
+    let W, H, animId;
+    let time = 0;
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    // Multi-octave noise via summed sine waves — gives organic terrain feel
+    function elevation(x, y, t) {
+      const s = 0.0028;
+      return (
+        Math.sin(x * s * 1.0 + y * s * 0.7 + t * 0.18) * 0.40 +
+        Math.sin(x * s * 2.1 - y * s * 1.4 + t * 0.12) * 0.25 +
+        Math.sin(x * s * 0.5 + y * s * 2.3 - t * 0.09) * 0.20 +
+        Math.sin(x * s * 3.7 + y * s * 1.1 + t * 0.22) * 0.10 +
+        Math.sin(x * s * 1.3 - y * s * 3.2 - t * 0.07) * 0.05
+      );
+    }
+
+    // Marching squares — find iso-contour for a given level
+    function drawContour(level, color, lineWidth) {
+      const step = 18; // grid cell size in px
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+
+      for (let gx = 0; gx < W; gx += step) {
+        for (let gy = 0; gy < H; gy += step) {
+          const v00 = elevation(gx,        gy,        time);
+          const v10 = elevation(gx + step, gy,        time);
+          const v01 = elevation(gx,        gy + step, time);
+          const v11 = elevation(gx + step, gy + step, time);
+
+          // Interpolate crossing points on each edge
+          function lerp(a, b, va, vb) {
+            return (level - va) / (vb - va) * (b - a) + a;
+          }
+
+          const crosses = [];
+          if ((v00 < level) !== (v10 < level))
+            crosses.push([lerp(gx, gx+step, v00, v10), gy]);
+          if ((v10 < level) !== (v11 < level))
+            crosses.push([gx+step, lerp(gy, gy+step, v10, v11)]);
+          if ((v01 < level) !== (v11 < level))
+            crosses.push([lerp(gx, gx+step, v01, v11), gy+step]);
+          if ((v00 < level) !== (v01 < level))
+            crosses.push([gx, lerp(gy, gy+step, v00, v01)]);
+
+          if (crosses.length >= 2) {
+            ctx.moveTo(crosses[0][0], crosses[0][1]);
+            ctx.lineTo(crosses[1][0], crosses[1][1]);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+
+    // Small spot-elevation markers (+ symbols at local peaks)
+    function drawSpotElevations() {
+      const step = 110;
+      ctx.fillStyle = SPOT_COLOR;
+      ctx.font = '9px monospace';
+      for (let gx = step/2; gx < W; gx += step) {
+        for (let gy = step/2; gy < H; gy += step) {
+          const v = elevation(gx, gy, time);
+          // Only label near the top of the terrain range
+          if (v > 0.55) {
+            const fake_elev = Math.round((v + 1) * 180 + 50); // fake metres
+            ctx.globalAlpha = 0.35;
+            ctx.fillText('▲ ' + fake_elev + 'm', gx + 4, gy - 3);
+            ctx.globalAlpha = 1;
+          }
+        }
+      }
+    }
+
+    // Sparse N/S graticule tick labels
+    function drawGraticule() {
+      ctx.font = '10px monospace';
+      ctx.fillStyle = 'rgba(24, 223, 192, 0.22)';
+      const latBase = -33.93, lonBase = 18.86;
+      const cols = 5, rows = 4;
+      for (let c = 0; c <= cols; c++) {
+        const x = (c / cols) * W;
+        const lon = (lonBase + c * 0.04).toFixed(3);
+        ctx.globalAlpha = 0.6;
+        ctx.fillText(lon + '°E', x + 3, H - 8);
+        ctx.globalAlpha = 1;
+      }
+      for (let r = 0; r <= rows; r++) {
+        const y = (r / rows) * H;
+        const lat = (latBase - r * 0.03).toFixed(3);
+        ctx.globalAlpha = 0.6;
+        ctx.fillText(lat + '°S', 4, y + 12);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Draw contour levels from -0.9 to 0.9 in increments of 0.12
+      const levels = [];
+      for (let l = -0.9; l <= 0.9; l += 0.12) levels.push(l);
+
+      levels.forEach((lvl, i) => {
+        const isIndex = (i % 5 === 0);
+        drawContour(lvl, isIndex ? LINE_COLOR_INDEX : LINE_COLOR_PRIMARY, isIndex ? 1.2 : 0.6);
+      });
+
+      drawSpotElevations();
+      drawGraticule();
+
+      // Very slow drift
+      time += 0.004;
+      animId = requestAnimationFrame(draw);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    draw();
+  })();
+
+  /* Mobile nav */
+  function toggleNav() {
+    document.getElementById('navLinks').classList.toggle('open');
+  }
+
+  /* Close nav on link click (mobile) */
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', () => {
+      document.getElementById('navLinks').classList.remove('open');
+    });
+  });
+
+  /* Scroll reveal */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    // Stagger sibling cards gently
+    if (el.closest('.projects-grid') || el.closest('.reflection-grid')) {
+      el.style.transitionDelay = `${(i % 5) * 0.07}s`;
+    }
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
