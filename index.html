@@ -214,6 +214,15 @@
 
     .hero-inner {
       width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 3rem;
+    }
+
+    .hero-text {
+      flex: 1;
+      min-width: 0;
     }
     
     .hero-photo {
@@ -234,6 +243,18 @@
       object-fit: cover;
       object-position: center top;
       display: block;
+    }
+
+    @media (max-width: 700px) {
+      .hero-inner {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+        gap: 2rem;
+      }
+      .hero-photo {
+        width: 120px;
+        height: 120px;
+      }
     }
 
     .hero-eyebrow {
@@ -929,39 +950,44 @@
 <section id="hero" style="border-top:none;">
   <div class="hero-inner container">
 
-    <div class="hero-eyebrow">
-      Software Developer &amp; GeoInformatics
-    </div>
+    <div class="hero-text">
 
-    <h1 class="hero-name">
-      Dashlin<br><em>Naidoo</em>
-    </h1>
+      <div class="hero-eyebrow">
+        Software Developer &amp; GeoInformatics
+      </div>
 
-    <p class="hero-subtitle">
-      BSc GeoInformatics: Computer Science
-      <span class="sep">·</span>
-      BScHons GeoInformatics 2026
-      <span class="sep">·</span>
-      Remote Sensing &amp; Earth Observation
-      <span class="sep">·</span>
-      Stellenbosch University
-    </p>
+      <h1 class="hero-name">
+        Dashlin<br><em>Naidoo</em>
+      </h1>
 
-    <p class="hero-description">
-      I build practical software at the intersection of spatial data science and full-stack development -
-      from Android applications designed for low-connectivity environments to machine learning
-      pipelines predicting geospatial public health risks.
-    </p>
+      <p class="hero-subtitle">
+        BSc GeoInformatics: Computer Science
+        <span class="sep">·</span>
+        BScHons GeoInformatics 2026
+        <span class="sep">·</span>
+        Remote Sensing &amp; Earth Observation
+        <span class="sep">·</span>
+        Stellenbosch University
+      </p>
 
-    <div class="hero-ctas">
-      <a href="#projects" class="btn btn-primary">View Projects</a>
-      <a href="https://www.linkedin.com/in/dashlin-naidoo-3a3003265" target="_blank" rel="noopener" class="btn btn-ghost">↗ LinkedIn</a>
-      <a href="Dashlin_Naidoo_CV.pdf" download class="btn btn-ghost">↓ Download CV</a>
-    </div>
+      <p class="hero-description">
+        I build practical software at the intersection of spatial data science and full-stack development -
+        from Android applications designed for low-connectivity environments to machine learning
+        pipelines predicting geospatial public health risks.
+      </p>
 
-     <div class="hero-photo">
+      <div class="hero-ctas">
+        <a href="#projects" class="btn btn-primary">View Projects</a>
+        <a href="https://www.linkedin.com/in/dashlin-naidoo-3a3003265" target="_blank" rel="noopener" class="btn btn-ghost">↗ LinkedIn</a>
+        <a href="Dashlin_Naidoo_CV.pdf" download class="btn btn-ghost">↓ Download CV</a>
+      </div>
+
+    </div><!-- end hero-text -->
+
+    <div class="hero-photo">
       <img src="dashlin.jpeg" alt="Dashlin Naidoo" />
     </div>
+
   </div>
 
   <div class="hero-coords" aria-hidden="true">
