@@ -530,8 +530,9 @@
 
     .project-links {
       display: flex;
-      gap: 1.2rem;
+      gap: 0.75rem;
       margin-top: auto;
+      flex-wrap: wrap;
     }
 
     .project-link {
@@ -543,6 +544,41 @@
     }
 
     .project-link:hover { color: var(--teal); opacity: 1; }
+
+    .project-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-code);
+      font-size: 0.73rem;
+      letter-spacing: 0.06em;
+      padding: 0.38rem 0.85rem;
+      border-radius: 4px;
+      border: 1px solid;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+
+    .project-btn.teal {
+      color: var(--teal);
+      border-color: var(--teal);
+    }
+
+    .project-btn.teal:hover {
+      background: var(--teal-dim);
+      opacity: 1;
+    }
+
+    .project-btn.amber {
+      color: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .project-btn.amber:hover {
+      background: var(--amber-dim);
+      opacity: 1;
+    }
 
     /* ===================================================
        GIT PROGRESSION LAYOUT
@@ -1070,7 +1106,7 @@
             imagery.</p>
           </div>
           <div class="git-stage">
-            <div class="git-stage-label">GIT 742 · Honours · In Progress</div>
+            <div class="git-stage-label">GIT 742 · Honours</div>
             <div class="git-stage-title">Research-Level Geospatial Data Science</div>
             <p>Machine learning applied to spatial health data: regression, classification, and clustering
             to predict TB notification risk at clinic and ward level. Integrating spatio-temporal,
@@ -1124,6 +1160,9 @@
           <span class="tech-tag">Game AI</span>
           <span class="tech-tag">Algorithms</span>
         </div>
+        <div class="project-links">
+          <a href="YOUR_GITHUB_REPO_URL" target="_blank" rel="noopener" class="project-btn teal">↗ GitHub Repo</a>
+        </div>
       </div>
 
 
@@ -1142,6 +1181,25 @@
           <span class="tech-tag">SAR data</span>
         </div>
       </div>  
+
+      <!-- Object Classification Report -->
+      <div class="project-card reveal">
+        <div class="project-type">Remote Sensing · GIS</div>
+        <h3>Object-Based Image Classification</h3>
+        <ul>
+          <li>Produced a detailed classification report analysing land-cover using object-based image analysis techniques, applying segmentation and feature extraction to satellite imagery.</li>
+          <li>Demonstrated applied remote sensing methodology by interpreting classification results and evaluating accuracy across land-cover categories.</li>
+        </ul>
+        <div class="tech-tags">
+          <span class="tech-tag">Remote Sensing</span>
+          <span class="tech-tag">Object Classification</span>
+          <span class="tech-tag">Image Analysis</span>
+          <span class="tech-tag">Land-Cover</span>
+        </div>
+        <div class="project-links">
+          <a href="YOUR_OBJECT_CLASSIFICATION_PDF_URL" target="_blank" rel="noopener" class="project-btn amber">↓ PDF Report</a>
+        </div>
+      </div>
 
       <!-- Gaza EO Paper + ICMG Conference (merged) -->
       <div class="project-card featured span2 reveal">
@@ -1162,7 +1220,8 @@
           <span class="tech-tag">Academic Publication</span>
         </div>
         <div class="project-links">
-          <span class="project-link">Co-authored · ICMG 2024 · International Conference</span>
+          <a href="YOUR_ARTICLE_PDF_URL" target="_blank" rel="noopener" class="project-btn amber">↓ Read Article</a>
+          <span class="project-link" style="align-self:center;">Co-authored · ICMG 2024 · International Conference</span>
         </div>
       </div>
   </div>
@@ -1201,8 +1260,8 @@
             <div class="t-title">Lecture Assistant</div>
             <div class="t-org">Stellenbosch University</div>
             <div class="t-desc"><ul>
-              <li>Supported students across first, second and third year in 3 GeoInformatics modules (GIT 124, 214, 241) by explaining technical concepts and guiding practical coursework at each academic level.</li>
-              <li>Balanced tutoring responsibilities across 3 modules alongside my own workload by preparing for practical support materials and communicating technical ideas clearly.</li>
+              <li>Supported students across first, second and third year in 4 GeoInformatics modules (GIT 124, 214, 241, 342) by explaining technical concepts and guiding practical coursework at each academic level.</li>
+              <li>Balanced tutoring responsibilities across 4 modules alongside my own Honours workload by preparing practical support materials and communicating technical ideas clearly.</li>
             </ul></div>
           </div>
 
